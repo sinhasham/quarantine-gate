@@ -1,22 +1,3 @@
-# Dependency Quarantine Gate
-
-A CI gate that checks a project's dependencies before they are installed.
-
-It reads `requirements*.txt` and `package-lock.json` and:
-
-- **FAIL** if a package is a known malicious package (OSV.dev `MAL-` advisory)
-- **FAIL** if a version was published less than N days ago (cooldown, default 7)
-- **WARN** for npm packages that run install scripts
-- **WARN** for known (non-malicious) vulnerabilities
-- **WARN** for unpinned Python dependencies
-
-A report is written to `gate-report/report.html` and `gate-report/report.json`.
-
-## Run
-
-```
-python gate.py --path . --min-age-days 7 --require-network
-```
 
 Options:
 
@@ -35,3 +16,35 @@ Exit codes: `0` pass, `1` gate failed, `2` nothing to check.
 The allowlist never bypasses the malicious-package check.
 
 Only the Python standard library is used.
+
+## Jenkins pipeline
+
+The `Jenkinsfile` runs two gate stages:
+
+1. **Dependency Quarantine Gate**: scans the repo root (`requirements.txt`)
+2. **Node Quarantine Gate**: scans `node-sample/` (`package-lock.json`, 69 packages)
+
+Both use `--min-age-days 7 --require-network`, and the reports are archived as build artifacts.
+
+Setup notes (Windows): Jenkins runs as a service and does not see the user PATH, so the Jenkinsfile uses the full path to `python.exe` and `bat` steps.
+
+## Demo
+
+| Build | Setting | Result |
+| --- | --- | --- |
+| #1 | cooldown 7 days | PASSED (2 WARN: known vulnerabilities in flask/requests, unpinned numpy) |
+| #2 | cooldown 3650 days | **FAILED** (flask and requests blocked as too new) |
+| #3 | cooldown 7 days | PASSED |
+| #4 | Python + Node stages | PASSED (Node: 61 OK, 8 WARN) |
+
+Build #2 shows that the gate really blocks, not just passes.
+
+## Notes
+
+- Jenkins shows the archived `report.html` unstyled because of its Content Security Policy. Download it to view it with styling.
+- Known limitation: the gate checks package metadata and advisories; it does not scan package contents.
+
+## Future work
+
+- Install stage in Docker with `--ignore-scripts`
+- Match Jenkins' own plugins against security advisories
