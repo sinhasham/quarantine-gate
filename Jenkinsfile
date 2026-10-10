@@ -29,7 +29,7 @@ pipeline {
             steps {
                 // Fails the build if a package is malicious, younger than 7 days,
                 // or if the OSV lookup could not be completed.
-                bat '"%PYTHON%" gate.py --path . --min-age-days 7 --require-network --out gate-report'
+                bat '"%PYTHON%" gate.py --path . --min-age-days 3650S --require-network --out gate-report'
             }
         }
     }
