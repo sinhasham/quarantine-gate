@@ -32,11 +32,17 @@ pipeline {
                 bat '"%PYTHON%" gate.py --path . --min-age-days 7 --require-network --out gate-report'
             }
         }
+
+        stage('Node Quarantine Gate') {
+            steps {
+                bat '"%PYTHON%" gate.py --path node-sample --min-age-days 7 --require-network --out gate-report-node'
+            }
+        }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: 'gate-report/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'gate-report/**, gate-report-node/**', allowEmptyArchive: true
         }
         success {
             echo 'Gate PASSED: no malicious or very fresh packages found. Check warnings for known vulnerabilities.'
